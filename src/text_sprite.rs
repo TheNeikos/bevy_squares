@@ -52,6 +52,11 @@ pub fn draw_text_sprites(
     for (mut draw, text_sprite, text_sprite_size, translate) in &mut query.iter() {
         let position = translate.0 - (text_sprite_size.0 / 2.).extend(0.);
 
+        println!(
+            "Pos: {}, size: {}, text: {}",
+            position, text_sprite_size.0, text_sprite.text
+        );
+
         let mut drawable_text = DrawableText {
             font: fonts.get(&text_sprite.font).unwrap(),
             font_atlas_set: font_atlas_sets
