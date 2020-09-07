@@ -3,9 +3,9 @@ use bevy::{
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use rand::{prelude::SliceRandom, thread_rng, Rng};
-use std::collections::{HashMap, HashSet};
 use bevy_prototype_lyon::prelude::*;
+use rand::{prelude::SliceRandom, thread_rng};
+use std::collections::{HashMap, HashSet};
 
 mod animation;
 
@@ -133,7 +133,7 @@ fn text_update_system(diagnostics: Res<Diagnostics>, mut query: Query<With<FPS, 
 }
 
 const GRID_SIZE: u32 = 4;
-const SQUARE_WIDTH: u32 = 75;
+const SQUARE_WIDTH: u32 = 125;
 const SQUARE_MARGIN: u32 =
     ((WINDOW_WIDTH - 2 * PADDING) - GRID_SIZE * SQUARE_WIDTH) / (GRID_SIZE - 1);
 
@@ -217,19 +217,25 @@ impl Grid {
     }
 
     fn add_at(&mut self, (x, y): (u32, u32), square: Square) {
-        if x >= GRID_SIZE || y >= GRID_SIZE { panic!("Tried to add to a position outside of grid: {} {}", x, y); }
+        if x >= GRID_SIZE || y >= GRID_SIZE {
+            panic!("Tried to add to a position outside of grid: {} {}", x, y);
+        }
         let pos = (x + GRID_SIZE * y) as usize;
         self.0[pos] = Some(square);
     }
 
     fn get_at(&self, (x, y): (u32, u32)) -> Option<&Square> {
-        if x >= GRID_SIZE || y >= GRID_SIZE { return None; }
+        if x >= GRID_SIZE || y >= GRID_SIZE {
+            return None;
+        }
         let pos = (x + GRID_SIZE * y) as usize;
         self.0.get(pos).map(Option::as_ref).flatten()
     }
 
     fn take_at(&mut self, (x, y): (u32, u32)) -> Option<Square> {
-        if x >= GRID_SIZE || y >= GRID_SIZE { return None; }
+        if x >= GRID_SIZE || y >= GRID_SIZE {
+            return None;
+        }
         let pos = (x + GRID_SIZE * y) as usize;
         let mut inserted = None;
         std::mem::swap(&mut inserted, self.0.get_mut(pos).unwrap());
@@ -288,8 +294,16 @@ fn kill_after_update(
 struct BackgroundSquare;
 struct GameSquare;
 
-fn spawn_square(commands: &mut Commands, grid: &mut Grid, pos: (u32, u32), score: u64) {
+fn spawn_square(
+    commands: &mut Commands,
+    grid: &mut Grid,
+    mut meshes: &mut ResMut<Assets<Mesh>>,
+    colors: &SquareColors,
+    pos: (u32, u32),
+    score: u64,
+) {
     let (x, y) = calculate_grid_position(pos.0, pos.1);
+    let color = colors.get(score);
     let entity = commands
         .spawn((
             GameSquare,
@@ -299,17 +313,22 @@ fn spawn_square(commands: &mut Commands, grid: &mut Grid, pos: (u32, u32), score
         ))
         .with_children(|parent| {
             parent
-                .spawn(SpriteComponents {
-                    sprite: Sprite {
-                        size: Vec2::new(SQUARE_WIDTH as f32, SQUARE_WIDTH as f32),
+                .spawn(primitive(
+                    color,
+                    &mut meshes,
+                    ShapeType::RoundedRectangle {
+                        width: SQUARE_WIDTH as f32,
+                        height: SQUARE_WIDTH as f32,
+                        border_radius: SQUARE_WIDTH as f32 * 0.25,
                     },
-                    translation: Translation::new(
-                        (SQUARE_WIDTH as f32 - WINDOW_WIDTH as f32) / 2.0,
-                        (SQUARE_WIDTH as f32 - WINDOW_HEIGHT as f32) / 2.0 - UI_OFFSET as f32,
+                    TessellationMode::Fill(&FillOptions::default()),
+                    Vec3::new(
+                        -(WINDOW_WIDTH as f32) / 2.0,
+                        -(WINDOW_HEIGHT as f32) / 2.0 - UI_OFFSET as f32,
                         0.,
-                    ),
-                    ..Default::default()
-                })
+                    )
+                    .into(),
+                ))
                 .with(Scale::default());
         })
         .current_entity()
@@ -320,6 +339,7 @@ fn spawn_square(commands: &mut Commands, grid: &mut Grid, pos: (u32, u32), score
 fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
 ) {
     let font_handle = asset_server
@@ -328,14 +348,12 @@ fn setup(
 
     commands
         .spawn(Camera2dComponents::default())
-        .spawn(UiCameraComponents::default())
-        .insert_resource(SquareColors::new(&mut materials));
+        .spawn(UiCameraComponents::default());
 
     let mut grid = Grid::new();
 
     for x in 0..GRID_SIZE {
         for y in 0..GRID_SIZE {
-            let grow = 0.0;
             let (x_pos, y_pos) = calculate_grid_position(x, y);
             commands
                 .spawn((
@@ -346,33 +364,46 @@ fn setup(
                 ))
                 .with_children(|parent| {
                     parent.spawn(SpriteComponents {
-                        material: materials.add(Color::rgba(0., 0., 0., 0.3).into()),
+                        material: materials.add(Color::rgba(0., 0., 0., 0.2).into()),
                         draw: Draw {
                             is_transparent: true,
                             ..Default::default()
                         },
                         sprite: Sprite {
-                            size: Vec2::new(
-                                SQUARE_WIDTH as f32 + 2.0 * grow,
-                                SQUARE_WIDTH as f32 + 2.0 * grow,
-                            ),
+                            size: Vec2::new(SQUARE_WIDTH as f32 + 2.0, SQUARE_WIDTH as f32 + 2.0),
                         },
                         translation: Translation::new(
-                            (SQUARE_WIDTH as f32 - WINDOW_WIDTH as f32 - grow) / 2.0,
-                            (SQUARE_WIDTH as f32 - WINDOW_HEIGHT as f32 - grow) / 2.0
-                                - UI_OFFSET as f32,
+                            (SQUARE_WIDTH as f32 - WINDOW_WIDTH as f32) / 2.0,
+                            (SQUARE_WIDTH as f32 - WINDOW_HEIGHT as f32) / 2.0 - UI_OFFSET as f32,
                             0.,
                         ),
-                        scale: Scale(1.15),
+                        scale: Scale(1.05),
                         ..Default::default()
                     });
                 });
         }
     }
 
-    spawn_square(&mut commands, &mut grid, (1, 2), 1);
-    spawn_square(&mut commands, &mut grid, (2, 1), 2);
+    let square_colors = SquareColors::new(&mut materials);
+
+    spawn_square(
+        &mut commands,
+        &mut grid,
+        &mut meshes,
+        &square_colors,
+        (1, 2),
+        1,
+    );
+    spawn_square(
+        &mut commands,
+        &mut grid,
+        &mut meshes,
+        &square_colors,
+        (2, 1),
+        2,
+    );
     commands.insert_resource(grid);
+    commands.insert_resource(square_colors);
 
     commands
         .spawn(NodeComponents {
@@ -453,7 +484,7 @@ fn setup(
 fn update_colors(
     colors: Res<SquareColors>,
     grid: Res<Grid>,
-    mut query: Query<With<GameSquare, (Changed<GridPosition>, &Children)>>,
+    mut query: Query<With<GameSquare, (&GridPosition, &Children)>>,
     material_query: Query<(&mut Handle<ColorMaterial>, &Sprite)>,
 ) {
     for (position, children) in &mut query.iter() {
@@ -497,9 +528,11 @@ enum MovementDirection {
 fn move_squares(
     mut commands: Commands,
     game_state: Res<GameState>,
+    colors: Res<SquareColors>,
     mut grid: ResMut<Grid>,
     mut score_events: ResMut<Events<ScoreChange>>,
     mut game_events: ResMut<Events<RunningGameState>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     keyboard_input: Res<Input<KeyCode>>,
     query: Query<With<GameSquare, (&mut GridPosition, &Children)>>,
     mut background_query: Query<With<BackgroundSquare, (Entity, &GridPosition, &Translation)>>,
@@ -627,19 +660,21 @@ fn move_squares(
 
     let mut rng = thread_rng();
 
-    let mut tries = GRID_SIZE;
+    let mut possible_coords: Vec<u32> = (0..GRID_SIZE).collect();
     let coords = loop {
-        if tries > 0 {
-            tries -= 1;
-        } else {
+        if possible_coords.is_empty() {
             break None;
         }
 
+        possible_coords.shuffle(&mut rng);
+
+        let random_pos = possible_coords.pop().unwrap();
+
         let coords = match direction {
-            MovementDirection::Up => (rng.gen_range(0, GRID_SIZE), 0),
-            MovementDirection::Down => (rng.gen_range(0, GRID_SIZE), GRID_SIZE - 1),
-            MovementDirection::Right => (0, rng.gen_range(0, GRID_SIZE)),
-            MovementDirection::Left => (GRID_SIZE - 1, rng.gen_range(0, GRID_SIZE)),
+            MovementDirection::Up => (random_pos, 0),
+            MovementDirection::Down => (random_pos, GRID_SIZE - 1),
+            MovementDirection::Right => (0, random_pos),
+            MovementDirection::Left => (GRID_SIZE - 1, random_pos),
         };
 
         if grid.is_filled(coords) {
@@ -659,6 +694,8 @@ fn move_squares(
         spawn_square(
             &mut commands,
             &mut grid,
+            &mut meshes,
+            &colors,
             coords,
             *scores.choose(&mut rng).unwrap(),
         );
@@ -685,5 +722,4 @@ fn move_squares(
             game_events.send(RunningGameState::GameOver);
         }
     }
-    game_events.send(RunningGameState::GameOver);
 }
