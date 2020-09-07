@@ -1,5 +1,5 @@
 [package]
-name = "bevy_2048"
+name = "bevy_squares"
 version = "0.1.0"
 authors = ["Marcel Müller <neikos@neikos.email>"]
 edition = "2018"

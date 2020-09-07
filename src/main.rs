@@ -20,7 +20,7 @@ fn main() {
         .add_resource(WindowDescriptor {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
-            title: String::from("2048 - Bevy Edition"),
+            title: String::from("Squares - Bevy Edition"),
             vsync: true,
             resizable: false,
             ..Default::default()
