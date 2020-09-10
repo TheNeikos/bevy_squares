@@ -7,6 +7,39 @@ impl Plugin for AnimationPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_system(update_move_to.system());
         app.add_system(update_scale_to.system());
+        app.add_system(update_chase_number.system());
+    }
+}
+
+#[derive(Default)]
+pub struct ChaseNumber {
+    pub elapsed_time: f32,
+    pub duration: f32,
+    pub delay: f32,
+    pub start_number: f32,
+    pub end_number: f32,
+    pub cur_number: f32,
+    pub ease: Easing,
+}
+
+fn update_chase_number(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut chase_number_query: Query<(Entity, &mut ChaseNumber)>,
+) {
+    for (entity, mut chase_number) in &mut chase_number_query.iter() {
+        chase_number.elapsed_time += time.delta_seconds;
+        let done = (chase_number.elapsed_time / chase_number.duration).min(1.0);
+
+        let ease: &dyn Fn(f32) -> f32 = chase_number.ease.get_ease_fn();
+
+        chase_number.cur_number = chase_number.start_number
+            + (chase_number.end_number - chase_number.start_number) * ease(done);
+
+        if chase_number.elapsed_time > (chase_number.duration + chase_number.delay) {
+            chase_number.cur_number = chase_number.end_number;
+            commands.remove_one::<ChaseNumber>(entity);
+        }
     }
 }
 
@@ -20,7 +53,7 @@ pub struct ScaleTo {
     pub ease: Easing,
 }
 
-pub fn update_scale_to(
+fn update_scale_to(
     mut commands: Commands,
     time: Res<Time>,
     mut move_to_query: Query<(Entity, &mut ScaleTo, &mut Scale)>,
@@ -57,7 +90,7 @@ pub struct MoveTo {
     pub bounce: bool,
 }
 
-pub fn update_move_to(
+fn update_move_to(
     mut commands: Commands,
     time: Res<Time>,
     mut move_to_query: Query<(Entity, &mut MoveTo, &mut Translation)>,
