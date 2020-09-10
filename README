@@ -1,8 +1,8 @@
 <p align="center">
     <h1>Matching Squares</h1>
-    <hr>
-    <img src="./showcase/screenshot.png" />
-    <hr>
+    <hr />
+    <img src="./showcase/screenshot.png"></img>
+    <hr />
 </p>
 
 Match the squares to raise your score and combine them! What's the highest score you can get?
