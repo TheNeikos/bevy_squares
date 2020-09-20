@@ -535,9 +535,9 @@ impl Grid {
     fn get_neighbors(&self, pos: (u32, u32)) -> [Option<&Square>; 4] {
         [
             self.get_at((pos.0 + 1, pos.1)),
-            self.get_at((pos.0 - 1, pos.1)),
+            pos.0.checked_sub(1).and_then(|it| self.get_at((it, pos.1))),
             self.get_at((pos.0, pos.1 + 1)),
-            self.get_at((pos.0, pos.1 - 1)),
+            pos.1.checked_sub(1).and_then(|it| self.get_at((pos.0, it))),
         ]
     }
 }
