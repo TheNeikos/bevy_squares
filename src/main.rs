@@ -54,7 +54,7 @@ fn main() {
         )
         .add_system(move_squares.system())
         .add_system(update_score_text.system())
-        .add_system_to_stage(bevy::app::stage::POST_UPDATE, fps_update_system.system())
+        .add_system_to_stage(bevy::app::stage::UPDATE, fps_update_system.system())
         .add_system_to_stage(bevy::app::stage::POST_UPDATE, update_colors.system())
         .add_system_to_stage(bevy::app::stage::POST_UPDATE, kill_after_update.system())
         .add_system_to_stage(
